@@ -1,5 +1,5 @@
 import re
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, List
 from datetime import datetime
 
 from .tmdb import TMDbAPI
@@ -135,7 +135,7 @@ class Interpreter:
         return self.square_brackets_pattern.sub("", name)
 
     def determine_delimiter(
-        self, name: str, delimiters: list[str] = [" ", ".", "_"]
+        self, name: str, delimiters: List[str] = [" ", ".", "_"]
     ) -> str:
         counts = {delimiter: name.count(delimiter) for delimiter in delimiters}
         return max(counts, key=counts.get)

@@ -54,7 +54,7 @@ class MediaScan:
                 f"Input directory '{input_dir}' does not exist."
             )
         if not self.output_dir.exists():
-            os.makedirs(self.output_dir)
+            os.makedirs(self.output_dir, exist_ok=True)
 
     def scan(self):
         logger.info(f"Scanning directory: {self.input_dir}")
