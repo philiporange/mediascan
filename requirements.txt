@@ -1,0 +1,5 @@
+appdirs
+dotenv
+pyyaml
+redislite
+requests
