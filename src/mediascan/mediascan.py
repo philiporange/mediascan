@@ -26,6 +26,7 @@ class MediaScan:
         min_video_size: int = Config.MIN_VIDEO_SIZE,
         min_audio_size: int = Config.MIN_AUDIO_SIZE,
         delete_non_media: bool = Config.DELETE_NON_MEDIA,
+        clean: bool = Config.CLEAN,
     ):
         self.input_dir = Path(input_dir)
         self.output_dir = Path(output_dir)
@@ -44,6 +45,7 @@ class MediaScan:
         self.min_video_size = min_video_size
         self.min_audio_size = min_audio_size
         self.delete_non_media = delete_non_media
+        self.clean = clean
 
         self.interpreter = Interpreter()
 
@@ -64,6 +66,9 @@ class MediaScan:
                 logger.info(f"Deleting non-media file: {file_path}")
                 os.remove(file_path)
 
+        if self.clean:
+            self._clean_empty_folders(self.input_dir)
+
     def process(self, file_path: Path) -> None:
         logger.info(f"Processing file: {file_path}")
 
@@ -79,6 +84,9 @@ class MediaScan:
                 yield Path(root) / file
 
     def _is_media_file(self, file_path: Path) -> bool:
+        if not file_path.is_file():
+            return False
+
         # Skip files with "sample" in the filename
         if "sample" in file_path.stem.lower():
             return False
@@ -179,3 +187,11 @@ class MediaScan:
         except OSError:
             # If hard linking fails, fall back to copying
             shutil.copy2(source, destination)
+
+    def _clean_empty_folders(self, input_dir: Path):
+        for root, dirs, files in os.walk(input_dir, topdown=False):
+            for dir in dirs:
+                dir_path = os.path.join(root, dir)
+                if not os.listdir(dir_path):
+                    logger.info(f"Removing empty folder: {dir_path}")
+                    os.rmdir(dir_path)

@@ -7,6 +7,7 @@ import yaml
 
 from mediascan.mediascan import MediaScan
 from mediascan.config import Config
+from mediascan.logging import configure_logging
 
 
 def load_config(config_path):
@@ -21,7 +22,7 @@ def save_config(config_path, config):
         yaml.dump(config, f)
 
 
-def generate_default_config():
+def get_default_config():
     return {
         "input_dir": str(Path.home() / "Downloads"),
         "output_dir": str(Path.home() / "MediaLibrary"),
@@ -35,12 +36,29 @@ def generate_default_config():
         "min_video_size": Config.MIN_VIDEO_SIZE,
         "min_audio_size": Config.MIN_AUDIO_SIZE,
         "delete_non_media": Config.DELETE_NON_MEDIA,
+        "clean": Config.CLEAN,
     }
+
+
+def get_config(args, config_path):
+    config = load_config(config_path) or get_default_config()
+
+    # Override config with command-line arguments
+    for key, value in vars(args).items():
+        if value is not None and key in config:
+            config[key] = value
+
+    return config
 
 
 def main():
     parser = argparse.ArgumentParser(
         description="MediaScan - Organize your media files"
+    )
+    parser.add_argument(
+        "input_dir",
+        nargs="?",
+        help="Input directory to scan (overrides config and --input-dir)",
     )
     parser.add_argument(
         "--config", default="~/.mediascan.yaml", help="Path to config file"
@@ -59,6 +77,53 @@ def main():
         action="store_true",
         help="Generate default config file",
     )
+    parser.add_argument("--movie-path", help="Path template for movies")
+    parser.add_argument(
+        "--movie-path-no-year", help="Path template for movies without year"
+    )
+    parser.add_argument("--episode-path", help="Path template for TV episodes")
+    parser.add_argument(
+        "--episode-path-no-year",
+        help="Path template for TV episodes without year",
+    )
+    parser.add_argument(
+        "--dated-episode-path", help="Path template for dated TV episodes"
+    )
+    parser.add_argument(
+        "--min-video-size", type=int, help="Minimum video file size in bytes"
+    )
+    parser.add_argument(
+        "--min-audio-size", type=int, help="Minimum audio file size in bytes"
+    )
+    parser.add_argument(
+        "--delete-non-media",
+        action="store_true",
+        help="Delete non-media files",
+    )
+    parser.add_argument(
+        "--no-delete-non-media",
+        action="store_false",
+        dest="delete_non_media",
+        help="Don't delete non-media files",
+    )
+    parser.add_argument(
+        "--clean", action="store_true", help="Clean up empty directories"
+    )
+
+    # Add quiet and verbose options
+    parser.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        help="Quiet mode (only show errors)",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Verbose mode (show debug messages)",
+    )
+
     args = parser.parse_args()
 
     config_path = os.path.expanduser(args.config)
@@ -67,42 +132,29 @@ def main():
         if os.path.exists(config_path):
             print(f"Config file already exists at {config_path}")
             sys.exit(1)
-        config = generate_default_config()
+        config = get_default_config()
         save_config(config_path, config)
         print(f"Default config file generated at {config_path}")
         sys.exit(0)
 
-    config = load_config(config_path)
-    if config is None:
-        print(
-            f"Config file not found at {config_path}."
-            "Run with --generate-config to create one."
-        )
-        sys.exit(1)
+    config = get_config(args, config_path)
 
-    # Override config with command-line arguments
+    # Override input_dir if provided as a positional argument
     if args.input_dir:
         config["input_dir"] = args.input_dir
-    if args.output_dir:
-        config["output_dir"] = args.output_dir
-    if args.action:
-        config["action"] = args.action
+
+    # Configure logging based on quiet and verbose flags
+    if args.quiet:
+        log_level = Config.QUIET_LOG_LEVEL
+    elif args.verbose:
+        log_level = Config.VERBOSE_LOG_LEVEL
+    else:
+        log_level = Config.LOG_LEVEL
+
+    configure_logging(log_level)
 
     # Create MediaScan instance
-    media_scan = MediaScan(
-        input_dir=config["input_dir"],
-        output_dir=config["output_dir"],
-        action=config["action"],
-        extensions=config["extensions"],
-        movie_path=config["movie_path"],
-        movie_path_no_year=config["movie_path_no_year"],
-        episode_path=config["episode_path"],
-        episode_path_no_year=config["episode_path_no_year"],
-        dated_episode_path=config["dated_episode_path"],
-        min_video_size=config["min_video_size"],
-        min_audio_size=config["min_audio_size"],
-        delete_non_media=config["delete_non_media"],
-    )
+    media_scan = MediaScan(**config)
 
     # Run the scan
     media_scan.scan()

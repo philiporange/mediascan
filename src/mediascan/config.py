@@ -21,6 +21,8 @@ LOG_DIR = appdirs.user_log_dir(APP_NAME)
 DB_PATH = os.path.join(CACHE_DIR, "MediaScan.db")
 KV_PATH = os.path.join(CACHE_DIR, "MediaScan.kv")
 
+QUIET_LOG_LEVEL = "ERROR"
+VERBOSE_LOG_LEVEL = "DEBUG"
 LOG_PATH = os.path.join(LOG_DIR, "MediaScan.log")
 LOG_LEVEL = "INFO"
 LOG_ROTATION = "1 week"
@@ -43,6 +45,7 @@ DATED_EPISODE_PATH = (
 )
 SONG_PATH = "{artist}/{album}/{track} - {title}.{ext}"
 DELETE_NON_MEDIA = False
+CLEAN = False
 
 EXTENSIONS = {
     "video": [
@@ -88,12 +91,15 @@ class Config:
     DATED_EPISODE_PATH = DATED_EPISODE_PATH
     SONG_PATH = SONG_PATH
     DELETE_NON_MEDIA = DELETE_NON_MEDIA
+    CLEAN = CLEAN
 
     # Database
     DB_PATH = DB_PATH
     KV_PATH = KV_PATH
 
     # Logging
+    QUIET_LOG_LEVEL = QUIET_LOG_LEVEL
+    VERBOSE_LOG_LEVEL = VERBOSE_LOG_LEVEL
     LOG_PATH = LOG_PATH
     LOG_LEVEL = LOG_LEVEL
     LOG_ROTATION = LOG_ROTATION
