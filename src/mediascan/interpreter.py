@@ -1,5 +1,5 @@
 import re
-from typing import Dict, Optional, Tuple, List
+from typing import Dict, Optional, Tuple, List, Union
 from datetime import datetime
 
 from .tmdb import TMDbAPI
@@ -156,11 +156,19 @@ class Interpreter:
 
         return longest_matching_title
 
-    def find_year(self, name: str) -> Optional[str]:
+    def find_year(self, name: str) -> Dict[str, Optional[Union[int, str]]]:
+        current_year = datetime.now().year
         # Years in parentheses are unambiguous
         year_matches = list(self.year_in_parentheses_pattern.finditer(name))
         if year_matches:
-            return year_matches[-1].group(1)
+            match = year_matches[-1]  # Get the last match
+            year = int(match.group(1))
+            if 1895 <= year <= current_year + 1:
+                return {
+                    "value": year,
+                    "raw": match.group(0),
+                    "index": match.start()
+                }
 
         # Find all year matches, and check if they are part of a date match
         year_matches = list(self.year_pattern.finditer(name))
@@ -173,72 +181,133 @@ class Interpreter:
                 date_match.start() <= match.start() <= date_match.end()
                 for date_match in date_matches
             ):
-                year_match = match
-                break
-        # Return the year if found, otherwise return None
-        return year_match.group(1) if year_match else None
+                year = int(match.group(1))
+                if 1895 <= year <= current_year + 1:
+                    year_match = match
+                    break
 
-    def find_episode(self, name: str) -> Tuple[Optional[int], Optional[int]]:
+        # Return the year, raw token, and index if found, otherwise return None for all
+        return {
+            "value": int(year_match.group(1)) if year_match else None,
+            "raw": year_match.group(0) if year_match else None,
+            "index": year_match.start() if year_match else None
+        }
+
+    def find_episode(self, name: str) -> Dict[str, Optional[Union[Tuple[int, int], str, int]]]:
         episode_match = self.episode_pattern.search(name)
         if episode_match:
             groups = episode_match.groups()
             if groups[0] and groups[1]:  # SxxExx format
-                return int(groups[0]), int(groups[1])
+                return {
+                    "value": (int(groups[0]), int(groups[1])),
+                    "raw": episode_match.group(),
+                    "index": episode_match.start()
+                }
             elif groups[2] and groups[3]:  # xxxyy format
-                return int(groups[2]), int(groups[3])
-        return None, None
+                return {
+                    "value": (int(groups[2]), int(groups[3])),
+                    "raw": episode_match.group(),
+                    "index": episode_match.start()
+                }
+        return {"value": None, "raw": None, "index": None}
 
-    def find_season(self, name: str) -> Optional[int]:
+    def find_season(self, name: str) -> Dict[str, Optional[Union[int, str]]]:
         season_match = self.season_pattern.search(name)
         if season_match:
-            return int(next(group for group in season_match.groups() if group))
-        return None
+            return {
+                "value": int(next(group for group in season_match.groups() if group)),
+                "raw": season_match.group(),
+                "index": season_match.start()
+            }
+        return {"value": None, "raw": None, "index": None}
 
-    def find_date(self, name: str) -> Tuple[Optional[str], Optional[str]]:
+    def find_date(self, name: str) -> Dict[str, Optional[Union[str, int]]]:
         date_match = self.date_pattern.search(name)
         if date_match:
             year, month, day = date_match.groups()
             try:
                 date_obj = datetime(int(year), int(month), int(day))
-                return date_obj.strftime("%Y-%m-%d"), date_match.group()
+                return {
+                    "value": date_obj.strftime("%Y-%m-%d"),
+                    "raw": date_match.group(),
+                    "index": date_match.start()
+                }
             except ValueError:
-                return None, None
-        return None, None
+                return {"value": None, "raw": None, "index": None}
+        return {"value": None, "raw": None, "index": None}
 
-    def find_audio_codec(self, name: str) -> Optional[str]:
+    def find_audio_codec(self, name: str) -> Dict[str, Optional[Union[str, int]]]:
         audio_match = self.audio_codec_pattern.search(name)
-        return audio_match.group() if audio_match else None
+        if audio_match:
+            return {
+                "value": audio_match.group(),
+                "raw": audio_match.group(),
+                "index": audio_match.start()
+            }
+        return {"value": None, "raw": None, "index": None}
 
-    def find_video_codec(self, name: str) -> Optional[str]:
+    def find_video_codec(self, name: str) -> Dict[str, Optional[Union[str, int]]]:
         video_match = self.video_codec_pattern.search(name)
-        return video_match.group() if video_match else None
+        if video_match:
+            return {
+                "value": video_match.group(),
+                "raw": video_match.group(),
+                "index": video_match.start()
+            }
+        return {"value": None, "raw": None, "index": None}
 
-    def find_resolution(self, name: str) -> Optional[str]:
+    def find_resolution(self, name: str) -> Dict[str, Optional[Union[str, int]]]:
         resolution_match = self.resolution_pattern.search(name)
-        return resolution_match.group() if resolution_match else None
+        if resolution_match:
+            return {
+                "value": resolution_match.group(),
+                "raw": resolution_match.group(),
+                "index": resolution_match.start()
+            }
+        return {"value": None, "raw": None, "index": None}
 
-    def find_source(self, name: str) -> Optional[str]:
+    def find_source(self, name: str) -> Dict[str, Optional[Union[str, int]]]:
         source_match = self.source_pattern.search(name)
         if source_match:
             source = source_match.group().lower()
             if any(x.lower() in source for x in self.bluray_sources):
-                return "bluray"
+                value = "bluray"
             elif any(x.lower() in source for x in self.dvd_sources):
-                return "dvd"
+                value = "dvd"
             elif any(x.lower() in source for x in self.web_sources):
-                return "web"
+                value = "web"
             elif any(x.lower() in source for x in self.tv_sources):
-                return "tv"
+                value = "tv"
             elif any(x.lower() in source for x in self.cam_sources):
-                return "cam"
-        return None
+                value = "cam"
+            else:
+                value = source
+            return {
+                "value": value,
+                "raw": source_match.group(),
+                "index": source_match.start()
+            }
+        return {"value": None, "raw": None, "index": None}
 
-    def find_language(self, name: str) -> Optional[str]:
+    def find_language(self, name: str) -> Dict[str, Optional[Union[str, int]]]:
         language_match = self.language_pattern.search(name)
-        return language_match.group() if language_match else None
+        if language_match:
+            return {
+                "value": language_match.group(),
+                "raw": language_match.group(),
+                "index": language_match.start()
+            }
+        return {"value": None, "raw": None, "index": None}
 
-    def is_proper_or_repack(self, name: str) -> bool:
-        return bool(self.proper_repack_pattern.search(name))
+    def is_proper_or_repack(self, name: str) -> Dict[str, Optional[Union[bool, str, int]]]:
+        proper_repack_match = self.proper_repack_pattern.search(name)
+        if proper_repack_match:
+            return {
+                "value": True,
+                "raw": proper_repack_match.group(),
+                "index": proper_repack_match.start()
+            }
+        return {"value": False, "raw": None, "index": None}
 
     def clean_title(self, title: str) -> str:
         # Remove everything after the last letter, number, ! or ?
@@ -246,106 +315,88 @@ class Interpreter:
         return cleaned_title.strip()
 
     def interpret(
-        self, name: str, match_title: bool = False
-    ) -> Dict[str, Optional[str]]:
-        clean_name = self.remove_square_brackets(name)
-        delimiter = self.determine_delimiter(clean_name)
+        self, name: str, match_title: bool = False,
+    ) -> Dict:
+        # Cleaning
+        name = self.remove_square_brackets(name)
 
-        year = self.find_year(clean_name)
-        season, episode = self.find_episode(clean_name)
-        if season is None:
-            season = self.find_season(clean_name)
-        standardized_date, original_date = self.find_date(clean_name)
+        # Find the delimiter
+        delimiter = self.determine_delimiter(name)
 
-        # Find all metadata tokens
-        metadata_tokens = [
-            (self.find_source(clean_name), self.source_pattern),
-            (self.find_language(clean_name), self.language_pattern),
-            (self.find_resolution(clean_name), self.resolution_pattern),
-            (self.find_audio_codec(clean_name), self.audio_codec_pattern),
-            (self.find_video_codec(clean_name), self.video_codec_pattern),
+        # Match the metadata tokens. These all appear at the end of the name
+        source_match = self.find_source(name)
+        language_match = self.find_language(name)
+        resolution_match = self.find_resolution(name)
+        audio_codec_match = self.find_audio_codec(name)
+        video_codec_match = self.find_video_codec(name)
+        proper_repack_match = self.is_proper_or_repack(name)
+        metadata_matches = [
+            source_match,
+            language_match,
+            resolution_match,
+            audio_codec_match,
+            video_codec_match,
+            proper_repack_match,
         ]
 
-        # Find the earliest occurrence of any metadata token
-        title_end = len(clean_name)
-        for token, pattern in metadata_tokens:
-            if token:
-                match = pattern.search(clean_name)
-                if match and match.start() < title_end:
-                    title_end = match.start()
+        # Strip the metadata tokens from the name
+        earliest_match = None
+        for match in metadata_matches:
+            if match["value"]:
+                if earliest_match is None or match["index"] < earliest_match["index"]:
+                    earliest_match = match
 
-        # Consider year, season, episode, and date as well
-        identifiers = [
-            (
-                year,
-                (
-                    clean_name.index(f"({year})")
-                    if year and f"({year})" in clean_name
-                    else clean_name.index(year) if year else float("inf")
-                ),
-            ),
-            (
-                episode,
-                (
-                    clean_name.index(f"S{season:02d}E{episode:02d}")
-                    if season and episode
-                    else float("inf")
-                ),
-            ),
-            (
-                (
-                    season,
-                    (
-                        clean_name.index(f"S{season:02d}")
-                        if season and f"S{season:02d}" in clean_name
-                        else (
-                            clean_name.index(f"Season {season}")
-                            if season and f"Season {season}" in clean_name
-                            else (
-                                clean_name.index(f"(Season {season})")
-                                if season
-                                and f"(Season {season})" in clean_name
-                                else float("inf")
-                            )
-                        )
-                    ),
-                )
-                if season
-                else (None, float("inf"))
-            ),
-            (
-                standardized_date,
-                (
-                    clean_name.index(original_date)
-                    if original_date
-                    else float("inf")
-                ),
-            ),
-        ]
+        if earliest_match:
+            start_token = earliest_match["index"]
+            name = name[:start_token].strip()
 
-        title_end = min(
-            title_end,
-            min(
-                (idx for _, idx in identifiers if idx != float("inf")),
-                default=len(clean_name),
-            ),
-        )
-        title = clean_name[:title_end].strip()
+        # Find the season, episode and/or date
+        episode_match = self.find_episode(name)
+        season_match = self.find_season(name)
+        date_match = self.find_date(name)
 
+        # Is it a movie or a TV show?
+        media_type = 'tv'
+        season_no = None
+        episode_no = None
+        date_str = None
+        title_before = len(name)
+
+        if episode_match['value'] is not None:
+            season_no, episode_no = episode_match['value']
+            title_before = episode_match['index']
+        elif season_match['value'] is not None:
+            season_no = season_match['value']
+            title_before = season_match['index']
+        elif date_match['value'] is not None:
+            date_str = date_match['value']
+            title_before = date_match['index']
+        else:
+            media_type = 'movie'
+
+        # Remove any episode/season/date tokens from the title
+        name = name[:title_before].strip()
+
+        # Find the year
+        year_match = self.find_year(name)
+        if year_match:
+            name = name[:year_match["index"]].strip()
+
+        # Title is everything before the year
+        title = name
+
+        # Clean up the title
         title = re.sub(r"\s*\([^)]*\)\s*$", "", title)
         title = re.sub(r"^\s*\(|\)\s*$", "", title)
 
+        # Remove the delimiters
         if delimiter != " ":
             title = title.replace(delimiter, " ")
-
-        if year and title.endswith(year):
-            title = title[: -len(year)].strip()
-        elif standardized_date and title.endswith(original_date):
-            title = title[: -len(original_date)].strip()
 
         # Clean up the end of the title
         title = self.clean_title(title)
 
+        # Check if the title is known to TMDB
         is_known = False
         if match_title:
             assert self.tmdb, "tmdb is required to match title"
@@ -354,15 +405,15 @@ class Interpreter:
         return {
             "title": title,
             "known": is_known,
-            "year": year,
-            "episode": episode,
-            "season": season,
-            "date": standardized_date,
+            "year": year_match["value"],
+            "episode": episode_no,
+            "season": season_no,
+            "date": date_match["value"],
             "delimiter": delimiter,
-            "audio_codec": self.find_audio_codec(clean_name),
-            "video_codec": self.find_video_codec(clean_name),
-            "resolution": self.find_resolution(clean_name),
-            "source": self.find_source(clean_name),
-            "language": self.find_language(clean_name),
-            "is_proper": self.is_proper_or_repack(clean_name),
+            "audio_codec": audio_codec_match["value"],
+            "video_codec": video_codec_match["value"],
+            "resolution": resolution_match["value"],
+            "source": source_match["value"],
+            "language": language_match["value"],
+            "is_proper": proper_repack_match["value"],
         }

@@ -114,7 +114,8 @@ class MediaScan:
         )
 
     def _process_file(self, file_path: Path):
-        file_info = self.interpreter.interpret(file_path.stem)
+        relative_path = file_path.relative_to(self.input_dir).as_posix()
+        file_info = self.interpreter.interpret(relative_path)
         new_path = self._get_new_path(file_path, file_info)
 
         if new_path:
@@ -170,7 +171,16 @@ class MediaScan:
             ext=file_path.suffix[1:],
         )
 
-    def _perform_action(self, source: Path, destination: Path):
+    def _perform_action(self, source: Path, destination: Path, force=False):
+        # Check if destination already exists
+        if destination.exists():
+            if force and destination.is_file():
+                logger.info(f"Forcing overwrite of existing file {destination}")
+                os.remove(destination)
+            else:
+                logger.info(f"Destination already exists: {destination}")
+                return
+
         destination.parent.mkdir(parents=True, exist_ok=True)
         logger.info(f"{self.action.capitalize()}ing {source} to {destination}")
 
