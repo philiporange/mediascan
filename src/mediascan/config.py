@@ -12,14 +12,9 @@ APP_NAME = "MediaScan"
 MEDIA_PATH = os.path.expanduser("~/" + APP_NAME)
 MOVIES_DIR = "Movies"
 TV_SHOWS_DIR = "TV Shows"
-MUSIC_DIR = "Music"
 
 CONFIG_DIR = appdirs.user_config_dir(APP_NAME)
-CACHE_DIR = appdirs.user_cache_dir(APP_NAME)
 LOG_DIR = appdirs.user_log_dir(APP_NAME)
-
-DB_PATH = os.path.join(CACHE_DIR, "MediaScan.db")
-KV_PATH = os.path.join(CACHE_DIR, "MediaScan.kv")
 
 QUIET_LOG_LEVEL = "ERROR"
 VERBOSE_LOG_LEVEL = "DEBUG"
@@ -28,7 +23,7 @@ LOG_LEVEL = "INFO"
 LOG_ROTATION = "1 week"
 LOG_RETENTION = "1 month"
 
-ACTION = "link"  # link, copy, move
+ACTION = "symlink"  # symlink, link, copy, move
 MIN_VIDEO_SIZE = 100 * 1024 * 1024  # 100 MB
 MIN_AUDIO_SIZE = 3 * 1024 * 1024  # 3 MB
 MOVIE_PATH = "{title} ({year})/{title} ({year}) [{quality}].{ext}"
@@ -43,8 +38,8 @@ EPISODE_PATH_NO_YEAR = (
 DATED_EPISODE_PATH = (
     "{title} ({year})/Season {season}/{title} - {date} [{quality}].{ext}"
 )
-SONG_PATH = "{artist}/{album}/{track} - {title}.{ext}"
 DELETE_NON_MEDIA = False
+PREFER_EXISTING_FOLDERS = False
 CLEAN = False
 
 EXTENSIONS = {
@@ -79,7 +74,6 @@ class Config:
     MEDIA_PATH = MEDIA_PATH
     MOVIES_DIR = MOVIES_DIR
     TV_SHOWS_DIR = TV_SHOWS_DIR
-    MUSIC_DIR = MUSIC_DIR
     EXTENSIONS = EXTENSIONS
     ACTION = ACTION
     MIN_AUDIO_SIZE = MIN_AUDIO_SIZE
@@ -89,13 +83,9 @@ class Config:
     EPISODE_PATH = EPISODE_PATH
     EPISODE_PATH_NO_YEAR = EPISODE_PATH_NO_YEAR
     DATED_EPISODE_PATH = DATED_EPISODE_PATH
-    SONG_PATH = SONG_PATH
     DELETE_NON_MEDIA = DELETE_NON_MEDIA
+    PREFER_EXISTING_FOLDERS = PREFER_EXISTING_FOLDERS
     CLEAN = CLEAN
-
-    # Database
-    DB_PATH = DB_PATH
-    KV_PATH = KV_PATH
 
     # Logging
     QUIET_LOG_LEVEL = QUIET_LOG_LEVEL
@@ -104,18 +94,3 @@ class Config:
     LOG_LEVEL = LOG_LEVEL
     LOG_ROTATION = LOG_ROTATION
     LOG_RETENTION = LOG_RETENTION
-
-    # TMDb
-    TMDB_API_KEY = os.getenv("TMDB_API_KEY")
-    TMDB_BASE_URL = "https://api.themoviedb.org/3"
-    TMDB_DUMP_URL_TEMPLATE = (
-        "http://files.tmdb.org/p/exports/{}_ids_{}.json.gz"
-    )
-    TMDB_IMAGE_URL_PREFIX = "https://image.tmdb.org/t/p/w500"
-    TMDB_INDEX_PATH = "index.db"
-    TMDB_CACHE_EXPIRATION = 24 * 3600  # 1 day
-    TMDB_RATE_LIMIT = 20  # requests per second
-    TMDB_RATE_LIMIT_WINDOW = 1  # second
-    TMDB_MAX_RETRIES = 3
-    TMDB_RETRY_DELAY = 10  # seconds
-    TMDB_TMP_DIR = "/tmp/tmdb"

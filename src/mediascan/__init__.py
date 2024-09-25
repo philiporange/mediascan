@@ -1,10 +1,9 @@
 from .interpreter import Interpreter
 from .mediascan import MediaScan
-from .tmdb import TMDbAPI
 
-__all__ = ["Interpreter", "MediaScan", "TMDbAPI"]
+__all__ = ["Interpreter", "MediaScan"]
 __name__ = "mediascan"
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 __author__ = "Philip Orange"
 __author_email__ = "git" + "@" + "philiporange.com"
 __description__ = "A Python package for scanning and organizing media files."

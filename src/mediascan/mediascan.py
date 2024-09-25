@@ -1,6 +1,7 @@
 import os
+import re
 import shutil
-from typing import List
+from typing import List, Dict, Tuple
 from pathlib import Path
 
 from .config import Config
@@ -16,7 +17,6 @@ class MediaScan:
         action: str = "link",
         movies_dir: str = Config.MOVIES_DIR,
         tv_shows_dir: str = Config.TV_SHOWS_DIR,
-        music_dir: str = Config.MUSIC_DIR,
         extensions: dict = Config.EXTENSIONS,
         movie_path: str = Config.MOVIE_PATH,
         movie_path_no_year: str = Config.MOVIE_PATH_NO_YEAR,
@@ -26,13 +26,13 @@ class MediaScan:
         min_video_size: int = Config.MIN_VIDEO_SIZE,
         min_audio_size: int = Config.MIN_AUDIO_SIZE,
         delete_non_media: bool = Config.DELETE_NON_MEDIA,
+        prefer_existing_folders: bool = False,
         clean: bool = Config.CLEAN,
     ):
         self.input_dir = Path(input_dir)
         self.output_dir = Path(output_dir)
         self.movies_path = self.output_dir / movies_dir
         self.tv_shows_path = self.output_dir / tv_shows_dir
-        self.music_path = self.output_dir / music_dir
 
         self.action = action
 
@@ -45,6 +45,7 @@ class MediaScan:
         self.min_video_size = min_video_size
         self.min_audio_size = min_audio_size
         self.delete_non_media = delete_non_media
+        self.prefer_existing_folders = prefer_existing_folders
         self.clean = clean
 
         self.interpreter = Interpreter()
@@ -55,6 +56,11 @@ class MediaScan:
             )
         if not self.output_dir.exists():
             os.makedirs(self.output_dir, exist_ok=True)
+
+        # Load existing years
+        self.existing_tv_shows = {}
+        if self.prefer_existing_folders:
+            self.existing_tv_shows = self._get_existing_tv_show_folders()
 
     def scan(self):
         logger.info(f"Scanning directory: {self.input_dir}")
@@ -116,8 +122,19 @@ class MediaScan:
     def _process_file(self, file_path: Path):
         relative_path = file_path.relative_to(self.input_dir).as_posix()
         file_info = self.interpreter.interpret(relative_path)
-        new_path = self._get_new_path(file_path, file_info)
 
+        # Use existing folder?
+        if self.prefer_existing_folders and not file_info["year"]:
+            title_norm = file_info["title"].strip().lower()
+            if title_norm in self.existing_tv_shows:
+                title, year = self.existing_tv_shows[title_norm]
+                if year > 1920:
+                    file_info["title"] = title
+                    file_info["year"] = year
+                    print(f"Using existing year for {title}: {year}")
+                    logger.debug(f"Using existing year for {title}: {year}")
+
+        new_path = self._get_new_path(file_path, file_info)
         if new_path:
             self._perform_action(file_path, new_path)
 
@@ -171,20 +188,54 @@ class MediaScan:
             ext=file_path.suffix[1:],
         )
 
+    def _get_existing_tv_show_folders(self) -> Dict[str, Tuple[str, int]]:
+        """
+        Scans the TV Shows directory and returns a dictionary mapping
+        normalized show titles to their actual title and year.
+        Assumes TV show folders are named in the format "Show Name (Year)".
+        """
+        existing_shows = {}
+        tv_shows_dir = self.tv_shows_path
+
+        if not tv_shows_dir.exists():
+            logger.debug(f"TV Shows directory does not exist: {tv_shows_dir}")
+            return existing_shows
+
+        year_pattern = re.compile(r"^(?P<title>.+?)\s*\((?P<year>\d{4})\)$")
+
+        for folder in tv_shows_dir.iterdir():
+            if folder.is_dir():
+                match = year_pattern.match(folder.name)
+                if match:
+                    title = match.group("title")
+                    title_norm = title.strip().lower()
+                    year = int(match.group("year"))
+                    existing_shows[title_norm] = title, year
+                    logger.debug(
+                        f"Found existing TV show: '{title}' with year {year}"
+                    )
+
+        return existing_shows
+
     def _perform_action(self, source: Path, destination: Path, force=False):
-        # Check if destination already exists
         if destination.exists():
             if force and destination.is_file():
-                logger.info(f"Forcing overwrite of existing file {destination}")
+                logger.info(
+                    f"Forcing overwrite of existing file {destination}"
+                )
                 os.remove(destination)
             else:
-                logger.info(f"Destination already exists: {destination}")
+                logger.info(
+                    f"Destination already exists: {destination}. Skipping."
+                )
                 return
 
         destination.parent.mkdir(parents=True, exist_ok=True)
-        logger.info(f"{self.action.capitalize()}ing {source} to {destination}")
+        logger.info(f"{self.action}: {source} -> {destination}")
 
-        if self.action == "link":
+        if self.action == "symlink":
+            self._create_symlink(source, destination)
+        elif self.action == "link":
             self._create_hard_link(source, destination)
         elif self.action == "copy":
             shutil.copy2(source, destination)
@@ -196,6 +247,13 @@ class MediaScan:
             os.link(source, destination)
         except OSError:
             # If hard linking fails, fall back to copying
+            shutil.copy2(source, destination)
+
+    def _create_symlink(self, source: Path, destination: Path):
+        try:
+            os.symlink(source, destination)
+        except OSError:
+            # If linking fails, fall back to copying
             shutil.copy2(source, destination)
 
     def _clean_empty_folders(self, input_dir: Path):

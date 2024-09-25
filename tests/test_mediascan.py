@@ -16,10 +16,15 @@ class TestMediaScan(unittest.TestCase):
         self.output_dir = os.path.join(self.temp_dir, "output")
         self.movies_path = os.path.join(self.output_dir, Config.MOVIES_DIR)
         self.tv_shows_path = os.path.join(self.output_dir, Config.TV_SHOWS_DIR)
-        self.music_path = os.path.join(self.output_dir, Config.MUSIC_DIR)
 
         os.makedirs(self.input_dir)
         os.makedirs(self.output_dir)
+
+        # Create an existing TV show folder
+        existing_show_folder = os.path.join(
+            self.tv_shows_path, "Existing Show (2020)"
+        )
+        os.makedirs(existing_show_folder)
 
         # Create a MediaScan instance with temporary directories and zero min sizes
         self.media_scan = MediaScan(
@@ -27,6 +32,7 @@ class TestMediaScan(unittest.TestCase):
             output_dir=self.output_dir,
             min_video_size=0,
             min_audio_size=0,
+            prefer_existing_folders=True,
         )
 
     def tearDown(self):
@@ -192,6 +198,52 @@ class TestMediaScan(unittest.TestCase):
         self.assertFalse(
             os.path.exists(document_path),
             f"Document file was not deleted: {document_path}",
+        )
+
+    def test_scan_with_existing_tv_show_year(self):
+        # Create a test TV show file without a year
+        self.create_empty_file(
+            os.path.join(self.input_dir, "Existing Show S01E01.mp4")
+        )
+
+        # Run the scan
+        self.media_scan.scan()
+
+        # Check if the TV show file was placed in the existing folder with year
+        existing_show_folder = os.path.join(
+            self.tv_shows_path, "Existing Show (2020)"
+        )
+        expected_path = os.path.join(
+            existing_show_folder,
+            "Season 01",
+            "Existing Show (2020) - S01E01 [Unknown].mp4",
+        )
+        self.assertTrue(
+            os.path.exists(expected_path),
+            f"TV show file not found in existing folder: {expected_path}",
+        )
+
+    def test_scan_without_existing_tv_show_year(self):
+        # Setup: No existing TV show folders
+
+        # Create a test TV show file without a year
+        self.create_empty_file(
+            os.path.join(self.input_dir, "New Show S01E01.mp4")
+        )
+
+        # Run the scan
+        self.media_scan.scan()
+
+        # Check if the TV show file was placed without a year
+        expected_path = os.path.join(
+            self.tv_shows_path,
+            "New Show",
+            "Season 01",
+            "New Show - S01E01 [Unknown].mp4",
+        )
+        self.assertTrue(
+            os.path.exists(expected_path),
+            f"TV show file not found without year: {expected_path}",
         )
 
 
