@@ -8,7 +8,6 @@ MediaScan is a Python tool for organizing media files. It scans directories, int
 - Supports various naming conventions and file formats
 - Configurable output directory structure
 - Multiple actions: link, copy, or move files
-- TMDb integration for title matching (optional)
 
 ## Installation
 
@@ -40,7 +39,7 @@ from mediascan import MediaScan
 scanner = MediaScan(
     input_dir="~/Downloads",
     output_dir="~/MediaLibrary",
-    action="link",
+    action="symlink",
 )
 
 scanner.scan()

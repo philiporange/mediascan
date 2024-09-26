@@ -39,7 +39,7 @@ DATED_EPISODE_PATH = (
     "{title} ({year})/Season {season}/{title} - {date} [{quality}].{ext}"
 )
 DELETE_NON_MEDIA = False
-PREFER_EXISTING_FOLDERS = False
+PREFER_EXISTING_FOLDERS = True
 CLEAN = False
 
 EXTENSIONS = {

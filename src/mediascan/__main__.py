@@ -36,19 +36,20 @@ def get_default_config():
         "min_video_size": Config.MIN_VIDEO_SIZE,
         "min_audio_size": Config.MIN_AUDIO_SIZE,
         "delete_non_media": Config.DELETE_NON_MEDIA,
-        "use_existing_years": Config.USE_EXISTING_YEARS,
+        "prefer_existing_folders": Config.PREFER_EXISTING_FOLDERS,
         "clean": Config.CLEAN,
     }
 
 
 def get_config(args, config_path):
-    config = load_config(config_path) or get_default_config()
-
+    config = get_default_config()  # Start with default settings
+    config_file = load_config(config_path)
+    if config_file:
+        config.update(config_file)  # Override defaults with config file
     # Override config with command-line arguments
     for key, value in vars(args).items():
-        if value is not None and key in config:
+        if value is not None:
             config[key] = value
-
     return config
 
 
