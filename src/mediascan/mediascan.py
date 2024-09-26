@@ -157,7 +157,7 @@ class MediaScan:
             else self.episode_path_no_year
         )
         return self.tv_shows_path / path.format(
-            title=file_info["title"],
+            title=file_info["title"].title(),
             year=file_info["year"] or "Unknown Year",
             season=f"{file_info['season']:02d}",
             episode=f"{file_info['episode']:02d}",
@@ -169,7 +169,7 @@ class MediaScan:
         date = file_info["date"]
         season = date[:4]  # Year
         return self.tv_shows_path / self.dated_episode_path.format(
-            title=file_info["title"],
+            title=file_info["title"].title(),
             year=file_info["year"] or "Unknown Year",
             season=season,
             date=date,
@@ -182,7 +182,7 @@ class MediaScan:
             self.movie_path if file_info["year"] else self.movie_path_no_year
         )
         return self.movies_path / path.format(
-            title=file_info["title"],
+            title=file_info["title"].title(),
             year=file_info["year"] or "Unknown Year",
             quality=file_info["resolution"] or "Unknown",
             ext=file_path.suffix[1:],

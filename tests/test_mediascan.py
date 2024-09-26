@@ -52,7 +52,7 @@ class TestMediaScan(unittest.TestCase):
 
         # Check if media files were processed
         expected_movie_path = os.path.join(
-            self.movies_path, "movie/movie [Unknown].mp4"
+            self.movies_path, "Movie/Movie [Unknown].mp4"
         )
         self.assertTrue(
             os.path.exists(expected_movie_path),
@@ -115,7 +115,7 @@ class TestMediaScan(unittest.TestCase):
         self.media_scan.action = "link"
         self.media_scan.scan()
         linked_file = os.path.join(
-            self.movies_path, "test movie/test movie [Unknown].mp4"
+            self.movies_path, "Test Movie/Test Movie [Unknown].mp4"
         )
         self.assertTrue(
             os.path.exists(linked_file),
@@ -136,7 +136,7 @@ class TestMediaScan(unittest.TestCase):
         self.media_scan.action = "copy"
         self.media_scan.scan()
         copied_file = os.path.join(
-            self.movies_path, "test movie/test movie [Unknown].mp4"
+            self.movies_path, "Test Movie/Test Movie [Unknown].mp4"
         )
         self.assertTrue(
             os.path.exists(copied_file),
@@ -157,7 +157,7 @@ class TestMediaScan(unittest.TestCase):
         self.media_scan.action = "move"
         self.media_scan.scan()
         moved_file = os.path.join(
-            self.movies_path, "test movie/test movie [Unknown].mp4"
+            self.movies_path, "Test Movie/Test Movie [Unknown].mp4"
         )
         self.assertTrue(
             os.path.exists(moved_file), f"Moved file not found: {moved_file}"
@@ -181,7 +181,7 @@ class TestMediaScan(unittest.TestCase):
 
         # Check if media file was moved and non-media file was deleted
         expected_movie_path = os.path.join(
-            self.movies_path, "movie/movie [Unknown].mp4"
+            self.movies_path, "Movie/Movie [Unknown].mp4"
         )
         self.assertTrue(
             os.path.exists(expected_movie_path),

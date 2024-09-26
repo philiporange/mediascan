@@ -160,6 +160,11 @@ def main():
 
     configure_logging(log_level)
 
+    # Remove non-config arguments
+    for key in ["config", "generate_config", "quiet", "verbose"]:
+        if key in config:
+            del config[key]
+
     # Create MediaScan instance
     media_scan = MediaScan(**config)
 
