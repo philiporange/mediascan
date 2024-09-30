@@ -24,7 +24,7 @@ def save_config(config_path, config):
 
 def get_default_config():
     return {
-        "input_dir": str(Path.home() / "Downloads"),
+        "input_path": str(Path.home() / "Downloads"),  # Renamed
         "output_dir": str(Path.home() / "MediaLibrary"),
         "action": Config.ACTION,
         "extensions": Config.EXTENSIONS,
@@ -48,6 +48,12 @@ def get_config(args, config_path):
         config.update(config_file)  # Override defaults with config file
     # Override config with command-line arguments
     for key, value in vars(args).items():
+        if (
+            key == "input_path"
+            and value is None
+            and hasattr(args, "input_dir")
+        ):
+            value = args.input_dir  # Fallback if needed
         if value is not None:
             config[key] = value
     return config
@@ -58,14 +64,14 @@ def main():
         description="MediaScan - Organize your media files"
     )
     parser.add_argument(
-        "input_dir",
+        "input_path",
         nargs="?",
-        help="Input directory to scan (overrides config and --input-dir)",
+        help="Override input path (file or directory)",
     )
     parser.add_argument(
         "--config", default="~/.mediascan.yaml", help="Path to config file"
     )
-    parser.add_argument("--input-dir", help="Input directory to scan")
+    parser.add_argument("--input-path", help="Input path to scan")
     parser.add_argument(
         "--output-dir", help="Output directory for organized files"
     )
@@ -146,9 +152,9 @@ def main():
 
     config = get_config(args, config_path)
 
-    # Override input_dir if provided as a positional argument
-    if args.input_dir:
-        config["input_dir"] = args.input_dir
+    # Override input_path if provided as a positional argument
+    if args.input_path:
+        config["input_path"] = args.input_path
 
     # Configure logging based on quiet and verbose flags
     if args.quiet:

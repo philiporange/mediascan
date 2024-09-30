@@ -12,7 +12,7 @@ from .logging import logger
 class MediaScan:
     def __init__(
         self,
-        input_dir: str,
+        input_path: str,
         output_dir: str,
         action: str = "link",
         movies_dir: str = Config.MOVIES_DIR,
@@ -29,7 +29,7 @@ class MediaScan:
         prefer_existing_folders: bool = False,
         clean: bool = Config.CLEAN,
     ):
-        self.input_dir = Path(input_dir)
+        self.input_path = Path(input_path)
         self.output_dir = Path(output_dir)
         self.movies_path = self.output_dir / movies_dir
         self.tv_shows_path = self.output_dir / tv_shows_dir
@@ -50,10 +50,8 @@ class MediaScan:
 
         self.interpreter = Interpreter()
 
-        if not self.input_dir.exists():
-            raise FileNotFoundError(
-                f"Input directory '{input_dir}' does not exist."
-            )
+        if not self.input_path.exists():
+            raise FileNotFoundError(f"Input '{input_path}' does not exist.")
         if not self.output_dir.exists():
             os.makedirs(self.output_dir, exist_ok=True)
 
@@ -63,17 +61,19 @@ class MediaScan:
             self.existing_tv_shows = self._get_existing_tv_show_folders()
 
     def scan(self):
-        logger.info(f"Scanning directory: {self.input_dir}")
+        logger.info(f"Scanning: {self.input_path}")
 
-        for file_path in self._walk_directory(self.input_dir):
-            if self._is_media_file(file_path):
-                self._process_file(file_path)
-            elif self.action == "move" and self.delete_non_media:
-                logger.info(f"Deleting non-media file: {file_path}")
-                os.remove(file_path)
-
-        if self.clean:
-            self._clean_empty_folders(self.input_dir)
+        if self.input_path.is_file():
+            self.process(self.input_path)
+        elif self.input_path.is_dir():
+            for file_path in self._walk_directory(self.input_path):
+                self.process(file_path)
+            if self.clean:
+                self._clean_empty_folders(self.input_path)
+        else:
+            logger.error(
+                f"Input {self.input_path} is neither a file nor a directory"
+            )
 
     def process(self, file_path: Path) -> None:
         logger.info(f"Processing file: {file_path}")
@@ -120,7 +120,7 @@ class MediaScan:
         )
 
     def _process_file(self, file_path: Path):
-        relative_path = file_path.relative_to(self.input_dir).as_posix()
+        relative_path = file_path.relative_to(self.input_path).as_posix()
         file_info = self.interpreter.interpret(relative_path)
 
         # Use existing folder?
@@ -256,8 +256,8 @@ class MediaScan:
             # If linking fails, fall back to copying
             shutil.copy2(source, destination)
 
-    def _clean_empty_folders(self, input_dir: Path):
-        for root, dirs, files in os.walk(input_dir, topdown=False):
+    def _clean_empty_folders(self, input_path: Path):
+        for root, dirs, files in os.walk(input_path, topdown=False):
             for dir in dirs:
                 dir_path = os.path.join(root, dir)
                 if not os.listdir(dir_path):

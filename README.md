@@ -28,7 +28,7 @@ mediascan --generate-config
 Run MediaScan:
 
 ```bash
-mediascan --input-dir ~/Downloads --output-dir ~/MediaLibrary --action link
+mediascan --input-path ~/Downloads --output-dir ~/MediaLibrary --action link
 ```
 
 ### Python
@@ -37,7 +37,7 @@ mediascan --input-dir ~/Downloads --output-dir ~/MediaLibrary --action link
 from mediascan import MediaScan
 
 scanner = MediaScan(
-    input_dir="~/Downloads",
+    input_path="~/Downloads",
     output_dir="~/MediaLibrary",
     action="symlink",
 )

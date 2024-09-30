@@ -12,12 +12,12 @@ class TestMediaScan(unittest.TestCase):
     def setUp(self):
         # Create temporary directories for input and output
         self.temp_dir = tempfile.mkdtemp()
-        self.input_dir = os.path.join(self.temp_dir, "input")
+        self.input_path = os.path.join(self.temp_dir, "input")
         self.output_dir = os.path.join(self.temp_dir, "output")
         self.movies_path = os.path.join(self.output_dir, Config.MOVIES_DIR)
         self.tv_shows_path = os.path.join(self.output_dir, Config.TV_SHOWS_DIR)
 
-        os.makedirs(self.input_dir)
+        os.makedirs(self.input_path)
         os.makedirs(self.output_dir)
 
         # Create an existing TV show folder
@@ -28,7 +28,7 @@ class TestMediaScan(unittest.TestCase):
 
         # Create a MediaScan instance with temporary directories and zero min sizes
         self.media_scan = MediaScan(
-            input_dir=self.input_dir,
+            input_path=self.input_path,
             output_dir=self.output_dir,
             min_video_size=0,
             min_audio_size=0,
@@ -44,8 +44,8 @@ class TestMediaScan(unittest.TestCase):
 
     def test_scan_with_media_files(self):
         # Create test media files
-        self.create_empty_file(os.path.join(self.input_dir, "movie.mp4"))
-        self.create_empty_file(os.path.join(self.input_dir, "document.txt"))
+        self.create_empty_file(os.path.join(self.input_path, "movie.mp4"))
+        self.create_empty_file(os.path.join(self.input_path, "document.txt"))
 
         # Run the scan
         self.media_scan.scan()
@@ -68,7 +68,7 @@ class TestMediaScan(unittest.TestCase):
     def test_scan_with_tv_show(self):
         # Create a test TV show file
         self.create_empty_file(
-            os.path.join(self.input_dir, "Show.Name.S01E05.mp4")
+            os.path.join(self.input_path, "Show.Name.S01E05.mp4")
         )
 
         # Run the scan
@@ -89,7 +89,7 @@ class TestMediaScan(unittest.TestCase):
     def test_scan_with_movie_and_year(self):
         # Create a test movie file with year
         self.create_empty_file(
-            os.path.join(self.input_dir, "Movie.Name.2021.mp4")
+            os.path.join(self.input_path, "Movie.Name.2021.mp4")
         )
 
         # Run the scan
@@ -108,7 +108,7 @@ class TestMediaScan(unittest.TestCase):
 
     def test_scan_with_different_actions(self):
         # Create a test media file
-        source_file = os.path.join(self.input_dir, "test movie.mp4")
+        source_file = os.path.join(self.input_path, "test movie.mp4")
         self.create_empty_file(source_file)
 
         # Test 'link' action
@@ -169,8 +169,8 @@ class TestMediaScan(unittest.TestCase):
 
     def test_scan_with_delete_non_media(self):
         # Create test files
-        self.create_empty_file(os.path.join(self.input_dir, "movie.mp4"))
-        self.create_empty_file(os.path.join(self.input_dir, "document.txt"))
+        self.create_empty_file(os.path.join(self.input_path, "movie.mp4"))
+        self.create_empty_file(os.path.join(self.input_path, "document.txt"))
 
         # Set delete_non_media to True and action to 'move'
         self.media_scan.delete_non_media = True
@@ -188,13 +188,13 @@ class TestMediaScan(unittest.TestCase):
             f"Moved movie file not found: {expected_movie_path}",
         )
 
-        original_movie_path = os.path.join(self.input_dir, "movie.mp4")
+        original_movie_path = os.path.join(self.input_path, "movie.mp4")
         self.assertFalse(
             os.path.exists(original_movie_path),
             f"Original movie file still exists: {original_movie_path}",
         )
 
-        document_path = os.path.join(self.input_dir, "document.txt")
+        document_path = os.path.join(self.input_path, "document.txt")
         self.assertFalse(
             os.path.exists(document_path),
             f"Document file was not deleted: {document_path}",
@@ -203,7 +203,7 @@ class TestMediaScan(unittest.TestCase):
     def test_scan_with_existing_tv_show_year(self):
         # Create a test TV show file without a year
         self.create_empty_file(
-            os.path.join(self.input_dir, "Existing Show S01E01.mp4")
+            os.path.join(self.input_path, "Existing Show S01E01.mp4")
         )
 
         # Run the scan
@@ -228,7 +228,7 @@ class TestMediaScan(unittest.TestCase):
 
         # Create a test TV show file without a year
         self.create_empty_file(
-            os.path.join(self.input_dir, "New Show S01E01.mp4")
+            os.path.join(self.input_path, "New Show S01E01.mp4")
         )
 
         # Run the scan
