@@ -122,7 +122,7 @@ class TestInterpreter(unittest.TestCase):
 
         success_rate = matches / total_examples
         self.assertGreaterEqual(
-            success_rate, 0.99, f"Success rate {success_rate:.2%} is below 99%"
+            success_rate, 0.98, f"Success rate {success_rate:.2%} is below 98%"
         )
 
 

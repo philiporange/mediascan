@@ -51,9 +51,9 @@ def get_config(args, config_path):
         if (
             key == "input_path"
             and value is None
-            and hasattr(args, "input_dir")
+            and hasattr(args, "input_path")
         ):
-            value = args.input_dir  # Fallback if needed
+            value = args.input_path  # Fallback if needed
         if value is not None:
             config[key] = value
     return config

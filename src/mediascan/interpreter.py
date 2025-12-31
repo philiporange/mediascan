@@ -1,6 +1,21 @@
+"""
+Enhanced media filename interpreter using multiple parsing libraries.
+
+This module provides comprehensive media filename parsing by combining:
+- guessit: Advanced pattern matching with extensive rule sets
+- PTN (parse-torrent-title): Specialized torrent filename parsing
+- regex: Custom fallback patterns for edge cases
+
+The interpreter intelligently merges results from multiple parsers,
+preferring more confident and specific matches.
+"""
+
 import re
 from typing import Dict, Optional, Tuple, List, Union
 from datetime import datetime
+
+import guessit
+import PTN
 
 
 class Interpreter:
@@ -324,11 +339,111 @@ class Interpreter:
         cleaned_title = re.sub(r"[^a-zA-Z0-9!?]+$", "", title)
         return cleaned_title.strip()
 
-    def interpret(
-        self,
-        name: str,
-        match_title: bool = False,
-    ) -> Dict:
+    def _parse_with_guessit(self, name: str) -> Dict:
+        """Parse filename using guessit library."""
+        try:
+            result = guessit.guessit(name)
+
+            # Convert guessit result to our format
+            parsed = {
+                "title": str(result.get("title", "")),
+                "year": result.get("year"),
+                "season": result.get("season"),
+                "episode": result.get("episode"),
+                "episode_title": result.get("episode_title"),
+                "date": None,
+                "resolution": None,
+                "source": None,
+                "video_codec": None,
+                "audio_codec": None,
+                "language": None,
+                "type": "tv" if result.get("type") == "episode" else "movie",
+                "is_proper": result.get("other") in (["Proper"], ["Repack"]) if result.get("other") else False,
+            }
+
+            # Handle date
+            if result.get("date"):
+                parsed["date"] = result.get("date").strftime("%Y-%m-%d")
+
+            # Handle resolution
+            if result.get("screen_size"):
+                parsed["resolution"] = str(result.get("screen_size"))
+
+            # Handle source
+            if result.get("source"):
+                source = str(result.get("source")).lower()
+                if "blu-ray" in source or "bluray" in source:
+                    parsed["source"] = "bluray"
+                elif "dvd" in source:
+                    parsed["source"] = "dvd"
+                elif "web" in source:
+                    parsed["source"] = "web"
+                elif "hdtv" in source or "tv" in source:
+                    parsed["source"] = "tv"
+                else:
+                    parsed["source"] = source
+
+            # Handle video codec
+            if result.get("video_codec"):
+                parsed["video_codec"] = str(result.get("video_codec"))
+
+            # Handle audio codec
+            if result.get("audio_codec"):
+                parsed["audio_codec"] = str(result.get("audio_codec"))
+
+            # Handle language
+            if result.get("language"):
+                lang = result.get("language")
+                if hasattr(lang, "alpha3"):
+                    parsed["language"] = lang.alpha3
+                else:
+                    parsed["language"] = str(lang)
+
+            return parsed
+        except Exception:
+            return {}
+
+    def _parse_with_ptn(self, name: str) -> Dict:
+        """Parse filename using PTN (parse-torrent-title) library."""
+        try:
+            result = PTN.parse(name)
+
+            # Convert PTN result to our format
+            parsed = {
+                "title": result.get("title", ""),
+                "year": result.get("year"),
+                "season": result.get("season"),
+                "episode": result.get("episode"),
+                "date": None,
+                "resolution": result.get("resolution"),
+                "source": None,
+                "video_codec": result.get("codec"),
+                "audio_codec": result.get("audio"),
+                "language": result.get("language"),
+                "type": "tv" if result.get("season") or result.get("episode") else "movie",
+                "is_proper": result.get("proper", False) or result.get("repack", False),
+            }
+
+            # Handle quality/source
+            if result.get("quality"):
+                quality = result.get("quality").lower()
+                if "blu-ray" in quality or "bluray" in quality or "bdrip" in quality or "brrip" in quality:
+                    parsed["source"] = "bluray"
+                elif "dvd" in quality:
+                    parsed["source"] = "dvd"
+                elif "web" in quality:
+                    parsed["source"] = "web"
+                elif "hdtv" in quality or "pdtv" in quality:
+                    parsed["source"] = "tv"
+                else:
+                    parsed["source"] = quality
+
+            return parsed
+        except Exception:
+            return {}
+
+    def _parse_with_regex(self, name: str) -> Dict:
+        """Parse filename using custom regex patterns (original implementation)."""
         # Handle filenames
         name, extension = self.split_extension(name)
 
@@ -427,3 +542,80 @@ class Interpreter:
             "language": language_match["value"],
             "is_proper": proper_repack_match["value"],
         }
+
+    def _merge_results(self, guessit_result: Dict, ptn_result: Dict, regex_result: Dict) -> Dict:
+        """
+        Intelligently merge results from multiple parsers.
+
+        Priority:
+        1. guessit (most comprehensive and accurate)
+        2. PTN (good for torrent-style filenames)
+        3. regex (custom fallback patterns)
+
+        For each field, prefer non-None values from higher priority parsers.
+        """
+        merged = {}
+
+        # Define field priority: which parser is best for each field
+        field_priority = {
+            "title": ["regex", "guessit", "ptn"],  # Prefer regex (more conservative, keeps country codes)
+            "year": ["regex", "guessit", "ptn"],  # Prefer regex for year (better date handling)
+            "season": ["regex", "guessit", "ptn"],  # Prefer regex (fewer false positives)
+            "episode": ["regex", "guessit", "ptn"],  # Prefer regex (fewer false positives)
+            "date": ["regex", "guessit", "ptn"],  # Prefer regex for date parsing
+            "resolution": ["guessit", "ptn", "regex"],
+            "source": ["guessit", "ptn", "regex"],
+            "video_codec": ["regex", "ptn", "guessit"],  # Prefer regex (preserves original notation)
+            "audio_codec": ["regex", "ptn", "guessit"],  # Prefer regex (preserves original notation)
+            "language": ["ptn", "guessit", "regex"],
+            "type": ["regex", "guessit", "ptn"],  # Prefer regex (more conservative)
+            "is_proper": ["ptn", "regex", "guessit"],
+        }
+
+        parsers = {
+            "guessit": guessit_result,
+            "ptn": ptn_result,
+            "regex": regex_result,
+        }
+
+        # Merge each field based on priority
+        for field, priority in field_priority.items():
+            for parser_name in priority:
+                value = parsers[parser_name].get(field)
+                if value is not None and value != "" and value is not False:
+                    merged[field] = value
+                    break
+            else:
+                # If no parser found a value, use None
+                merged[field] = None
+
+        # Special case: If there's a date, don't use year from guessit (it's part of the date)
+        if merged.get("date") and merged.get("year"):
+            # Check if year is from the date
+            date_year = int(merged["date"][:4])
+            if merged["year"] == date_year:
+                merged["year"] = None
+
+        # Keep delimiter from regex (only regex extracts this)
+        merged["delimiter"] = regex_result.get("delimiter", " ")
+
+        return merged
+
+    def interpret(
+        self,
+        name: str,
+        match_title: bool = False,
+    ) -> Dict:
+        """
+        Parse media filename using multiple parsers and merge results.
+
+        Uses guessit, PTN, and custom regex patterns to extract metadata,
+        intelligently merging results for maximum accuracy.
+        """
+        # Parse with all three methods
+        guessit_result = self._parse_with_guessit(name)
+        ptn_result = self._parse_with_ptn(name)
+        regex_result = self._parse_with_regex(name)
+
+        # Merge results intelligently
+        return self._merge_results(guessit_result, ptn_result, regex_result)

@@ -1,5 +1,9 @@
 appdirs
-dotenv
+python-dotenv
 pyyaml
 redislite
 requests
+guessit
+parse-torrent-title
+rebulk
+loguru
