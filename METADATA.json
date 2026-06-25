@@ -1,74 +1,71 @@
 {
   "name": "mediascan",
-  "short_description": "Python tool for automatically organizing media files using intelligent filename parsing.",
-  "long_description": "MediaScan is a Python package that scans directories and intelligently organizes media files (movies and TV shows) into a structured library. It uses multiple parsing libraries (guessit, PTN, and custom regex patterns) to accurately detect and extract metadata from media filenames, then organizes files according to configurable path templates. The tool supports multiple actions (symlink, hard link, copy, or move) and can filter files by size and extension, making it ideal for building organized media libraries from downloads or collections with inconsistent naming conventions.",
+  "short_description": "Python tool for organizing media files using intelligent filename parsing and categorization into movies and TV shows.",
+  "long_description": "MediaScan is a comprehensive media file organizer that scans directories and intelligently parses media filenames to extract metadata (title, year, season, episode, resolution, codec, etc.). It uses multiple parsing engines (guessit, PTN, custom regex) to achieve high accuracy across various naming conventions. The tool then organizes files into a structured library by categorizing them as movies or TV shows, with customizable directory layouts and support for multiple file operations (symlink, hard link, copy, move). It includes extensive configuration options, logging, and a command-line interface for easy integration into media workflows.",
   "keywords": [
     "media-organization",
     "file-organizer",
     "media-library",
-    "movie-organizer",
-    "tv-show-organizer",
-    "filename-parsing",
+    "filename-parser",
     "metadata-extraction",
-    "media-renaming",
-    "movie-management",
-    "tv-management",
-    "file-management",
-    "media-automation",
+    "movies",
+    "tv-shows",
     "guessit",
+    "cli-tool",
     "python",
-    "cli-tool"
+    "symlink",
+    "file-management",
+    "content-organization",
+    "batch-processing"
   ],
   "primary_language": "Python",
   "languages": [
-    "Python"
+    "Python",
+    "Shell"
   ],
   "frameworks": [
     "guessit",
     "parse-torrent-title",
     "loguru",
-    "python-dotenv",
-    "pyyaml",
-    "appdirs"
+    "fastapi",
+    "pyyaml"
   ],
   "modules": [
     {
       "path": "src/mediascan/mediascan.py",
-      "description": "Core MediaScan class that handles file scanning, processing, and organization with support for multiple file actions (symlink, link, copy, move)."
+      "description": "Main MediaScan class that orchestrates directory scanning, file filtering, metadata interpretation, and file organization operations (link, copy, move)."
     },
     {
       "path": "src/mediascan/interpreter.py",
-      "description": "Advanced media filename parser combining guessit, PTN, and regex patterns to extract metadata (title, year, season, episode, resolution, codecs, language, etc.)."
-    },
-    {
-      "path": "src/mediascan/__main__.py",
-      "description": "Command-line interface with argument parsing, config file support (YAML), and integration with MediaScan class for CLI execution."
+      "description": "Advanced filename interpreter using guessit, PTN, and regex patterns to extract media metadata (title, year, season, episode, resolution, codec, source, language)."
     },
     {
       "path": "src/mediascan/config.py",
-      "description": "Configuration module with default settings for paths, file extensions, output templates, file size thresholds, and logging configuration."
+      "description": "Configuration management with default settings for paths, file formats, output directory templates, minimum file sizes, and logging preferences."
+    },
+    {
+      "path": "src/mediascan/__main__.py",
+      "description": "Command-line interface with argument parsing, config file handling, and integration with the MediaScan class for end-user execution."
     },
     {
       "path": "src/mediascan/logging.py",
-      "description": "Logging setup using loguru with support for file rotation, console output, and configurable log levels."
+      "description": "Logging setup using loguru with file and console output, configurable log levels, and automatic rotation/retention."
     },
     {
       "path": "src/mediascan/__init__.py",
-      "description": "Package initialization exposing MediaScan and Interpreter classes with version and metadata information."
+      "description": "Package initialization exposing Interpreter and MediaScan classes, and defining package metadata."
+    },
+    {
+      "path": "tests/test_mediascan.py",
+      "description": "Unit tests for MediaScan class covering directory scanning, file processing, different file actions, TV show year detection, and non-media file handling."
+    },
+    {
+      "path": "tests/test_interpreter.py",
+      "description": "Unit tests for filename interpretation including year/season/episode detection, resolution/source/codec extraction, and integration tests with test examples."
+    },
+    {
+      "path": "scripts/build.sh",
+      "description": "Build script handling code formatting with black, linting with flake8, test execution, package building with wheel/sdist, and PyPI upload."
     }
-  ],
-  "git": {
-    "is_repo": true,
-    "remote_url": "https://github.com/philiporange/mediascan.git",
-    "github_name": "philiporange/mediascan",
-    "default_branch": "main",
-    "last_commit": "2024-09-30T22:21:06+01:00"
-  },
-  "stats": {
-    "files": 16,
-    "lines_of_code": 1717,
-    "size_bytes": 509444
-  },
-  "generated_at": "2025-12-06T21:53:45.892733",
-  "generator_version": "1.0.0"
+  ]
 }
